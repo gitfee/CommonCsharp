@@ -1,3 +1,3 @@
-# OracleHelper
-OracleHelper For C#
-This contains some code for demo.
+# CommonCsharpCode
+
+Some CSharp code that can easyily used to develope.
