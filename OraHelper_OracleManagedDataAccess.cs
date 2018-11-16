@@ -5,7 +5,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 
-namespace Pimco.Common
+namespace Common
 {
     public static class OracleHelper
     {
