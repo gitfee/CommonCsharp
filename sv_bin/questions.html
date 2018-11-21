@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title></title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta HTTP-EQUIV="pragma" CONTENT="no-cache">
+    <meta HTTP-EQUIV="Cache-Control" CONTENT="no-cache, must-revalidate">
+    <meta HTTP-EQUIV="expires" CONTENT="0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <link rel="stylesheet" href="../css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="location">
+    <div class="location-l">
+        <a href="javascript:;">Survey</a>&gt;
+        <a href="javascript:;">Participate</a>&gt;
+        <a href="javascript:;" class="active">Questions</a>
+    </div>
+</div>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-5 form-horizontal">
+            <div class="form-group">
+                <label for="survey" class="col-sm-3 control-label">Survey</label>
+                <div class="col-sm-9">
+                    <select id="survey" class="form-control">
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5 form-horizontal">
+            <div class="form-group">
+                <label for="question" class="col-sm-3 control-label">Question</label>
+                <div class="col-sm-9">
+                    <select id="question" class="form-control">
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2 col-sm-2">
+            <button id="search" type="button" class="btn btn-primary">Search</button>
+        </div>
+    </div>
+    <div class="content">
+        <div class="table-responsive" id="survey-box">
+            <table class="table">
+                <tr>
+                    <td>Survey</td>
+                    <td class="survey-title"></td>
+                </tr>
+                <tr>
+                    <td>Horizon</td>
+                    <td class="survey-date"></td>
+                </tr>
+                <tr>
+                    <td>Survey Description</td>
+                    <td class="survey-desc"></td>
+                </tr>
+            </table>
+        </div>
+        <div class="table-responsive" id="question-box">
+            <table class="table">
+                <tr>
+                    <td>Question</td>
+                    <td class="question-title"></td>
+                </tr>
+                <tr>
+                    <td>Request</td>
+                    <td class="question-request"></td>
+                </tr>
+            </table>
+        </div>
+        <div id="middle-chart"></div>
+        <div class="table-responsive">
+            <table class="table" id="option">
+            </table>
+        </div>
+        <div id="single-chart"></div>
+        <div id="multiple-chart"></div>
+    </div>
+</div>
+<!-- Javascript -->
+<script src="../js/jquery.min.js"></script>
+<!--[if lte IE 8]><script src="http://cdn.bootcss.com/jquery/1.9.0/jquery.min.js"></script><![endif]-->
+<!--[if lt IE 9]>
+<script src="https://cdn.jsdelivr.net/npm/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/respond.js@1.4.2/dest/respond.min.js"></script>
+<![endif]-->
+<script src="../js/bootstrap.min.js"></script>
+<script src="../js/echarts.min.js"></script>
+<script src="../laydate/laydate.js"></script>
+<script src="../js/survey.js"></script>
+<script>
+    var surveyId;
+    var questionId;
+
+    var surveyInventoryList;
+
+    var surveyInventory,
+        surveyQuestions,
+        surveyAnswersList,
+        surveyResultsList;
+
+    var echartMiddle,
+        echartSingle,
+        echartMultiple;
+
+    /* 中间柱图 */
+    function setMiddleEchart() {
+        $.ajax({
+            url: ROOT_API + 'api/getChart1',
+            type: 'post',
+            data: {
+                survey_id: surveyId,
+                survey_question_id: questionId
+            },
+            success: function (res) {
+                $('#middle-chart').show();
+                var chart = document.getElementById('middle-chart');
+                echartMiddle = echarts.init(chart);
+                var option = {
+                    color: ['#4F81BD'],
+                    title: {
+                        text: '',
+                        left: 'center'
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: { // 坐标轴指示器，坐标轴触发有效
+                            type: 'shadow' // 默认为直线，可选为：'line' | 'shadow'
+                        }
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '10%',
+                        //top: '10%',
+                        containLabel: true
+                    },
+                    legend: {
+                        data: [name],
+                        x: 'right'
+                    },
+                    xAxis: [
+                        {
+                            name: res.X_LABEL,
+                            nameLocation: 'center',
+                            nameGap: 38,
+                            nameTextStyle: {
+                                fontSize: 14,
+                                fontFamily: 'monospace'
+                            },
+                            type: 'category',
+                            data: res.dateList,
+                            axisLabel: {
+                                interval: 0,
+                                formatter: function (val) {
+                                    return val.replace("  ", "\n");
+                                }
+                            }
+                        }
+                    ],
+                    yAxis: [
+                        {
+                            name: res.Y_LABEL,
+                            nameLocation: 'center',
+                            nameGap: 60,
+                            type: 'value',
+                            nameTextStyle: {
+                                fontSize: 12,
+                                fontFamily: 'monospace'
+                            },
+                            axisLabel: {
+                                formatter: function (value, index) {
+                                    return value.toFixed(2) + '%';
+                                }
+                            }
+                        }
+                    ],
+                    series: [
+                        {
+                            name: 'Options Market Implied Probability',
+                            type: 'bar',
+                            barWidth: '30%',
+                            data: res.dataList
+                        }
+                    ]
+                };
+                echartMiddle.setOption(option);
+            },
+            error: function () {
+                alert('error')
+            },
+            dataType: 'json'
+        })
+    }
+
+    /* 单项图表 */
+    function setSingleEchart() {
+        $.ajax({
+            url: ROOT_API + 'api/getChart2',
+            type: 'post',
+            data: {
+                survey_id: surveyId,
+                survey_question_id: questionId
+            },
+            success: function (res) {
+                $('#single-chart').show();
+                var single = document.getElementById('single-chart');
+                echartSingle = echarts.init(single);
+                var option = {
+                    title: {
+                        text: '',
+                        left: 'center'
+                    },
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    legend: {
+                        data: ["Your Forecast", "All Participants Forecasts(Average)"],
+                        x: 'right'
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '12%',
+                        //top: '10%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        name: surveyQuestions.surveyQuestion,
+                        nameLocation: 'center',
+                        nameGap: 30,
+                        nameTextStyle: {
+                            fontSize: 14,
+                            fontFamily: 'monospace'
+                        },
+                        type: 'category',
+                        boundaryGap: false,
+                        data: res.dateList
+                    },
+                    yAxis: {
+                        type: 'value',
+                        name: 'User Input',
+                        nameLocation: 'center',
+                        nameGap: 60,
+                        nameTextStyle: {
+                            fontSize: 12,
+                            fontFamily: 'monospace'
+                        },
+                        axisLabel: {
+                            formatter: '{value} %'
+                        },
+                        min: '1.75'
+                    },
+                    series: [
+                        {
+                            name: "All Participants Forecasts(Average)",
+                            type: 'line',
+                            data: res.data1List,
+                            lineStyle: {
+                                color: '#BE4F4C'
+                            }
+                        },
+                        {
+                            name: "Your Forecast",
+                            type: 'line',
+                            data: res.data2List,
+                            lineStyle: {
+                                color: '#4F81BD'
+                            }
+                        }
+                    ]
+                };
+                echartSingle.setOption(option);
+            },
+            error: function () {
+                alert('error')
+            },
+            dataType: 'json'
+        })
+    }
+
+    /* 多项图表 */
+    function setMultipleEchart() {
+        $.ajax({
+            url: ROOT_API + 'api/getChart3',
+            type: 'post',
+            data: {
+                survey_id: surveyId,
+                survey_question_id: questionId
+            },
+            success: function (res) {
+                $('#multiple-chart').show();
+                var multiple = document.getElementById('multiple-chart');
+                echartMultiple = echarts.init(multiple);
+                var option = {
+                    title: {
+                        text: '',
+                        left: 'center'
+                    },
+                    color: ['#4F81BD', '#9BBB59', '#C0504D'],
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {
+                            type: 'shadow'
+                        }
+                    },
+                    legend: {
+                        data: ["Your Previous Answers(Average)", "All Participants Previous Answers(Average)", "Latest Participants Forecast(Average)"],
+                        x: 'right'
+                        //orient:'vertical'
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '8%',
+                        top: '11%',
+                        containLabel: true
+                    },
+                    xAxis: [
+                        {
+                            type: 'category',
+                            axisTick: {
+                                show: false
+                            },
+                            data: res.dateList,
+                            name: surveyQuestions.surveyQuestion,
+                            nameLocation: 'center',
+                            nameGap: 25,
+                            nameTextStyle: {
+                                fontSize: 14,
+                                fontFamily: 'monospace'
+                            }
+                        }
+                    ],
+                    yAxis: [
+                        {
+                            name: 'User Input',
+                            nameLocation: 'center',
+                            nameGap: 50,
+                            type: 'value',
+                            nameTextStyle: {
+                                fontSize: 12,
+                                fontFamily: 'monospace'
+                            },
+                            axisLabel: {
+                                formatter: '{value} %'
+                            }
+                        }
+                    ],
+                    series: [
+                        {
+                            name: "Your Previous Answers(Average)",
+                            type: 'bar',
+                            barGap: 0,
+                            barWidth: '20%',
+                            data: res.data1List
+                        },
+                        {
+                            name: "Latest Participants Forecast(Average)",
+                            type: 'scatter',
+                            data: res.data3List
+                        },
+                        {
+                            name: "All Participants Previous Answers(Average)",
+                            type: 'bar',
+                            barWidth: '20%',
+                            data: res.data2List
+                        }
+                    ]
+                };
+                echartMultiple.setOption(option);
+            },
+            error: function () {
+                alert('error')
+            },
+            dataType: 'json'
+        })
+    }
+
+    /* 判断是否在时间范围内 */
+    function nowInDateBetwen(d1, d2) {
+        var dateBegin = new Date(d1);
+        var dateEnd = new Date(d2);
+        var dateNow = new Date();
+
+        var beginDiff = dateNow.getTime() - dateBegin.getTime();
+        var beginDayDiff = Math.floor(beginDiff / (24 * 3600 * 1000));
+
+        var endDiff = dateEnd.getTime() - dateNow.getTime();
+        var endDayDiff = Math.floor(endDiff / (24 * 3600 * 1000));
+        if (endDayDiff < 0 || beginDayDiff < 0) { //已过期
+            $('#option input').attr('disabled', true);
+            $('#submit').attr('disabled', true);
+            return false
+        } else {
+            $('#option input').attr('disabled', false);
+            $('#submit').attr('disabled', false);
+            return true
+        }
+    }
+
+    /* 创建弹窗 */
+    function createAlert(str) {
+        $('#myModel').remove();
+        var html = '<div class="modal fade bs-example-modal-sm" id="myModel" tabindex="-1" role="dialog">' +
+            '<div class="modal-dialog modal-sm" role="document">' +
+            '<div class="modal-content">' +
+            '<div class="modal-body">' + str + '</div>' +
+            '<div class="modal-footer"><button type="button" class="btn btn-primary"  data-dismiss="modal">Close</button> </div>' +
+            '</div>' +
+            '</div>' +
+            '</div>';
+        $('body').append(html);
+        $("#myModel").modal("show");
+    }
+
+    /* input输入校验 0 -- 100 */
+    function checkNum(n) {
+        //var regex = /^\d+$/;
+        /*var regex = "^(([0-9]+\\.[0-9]*[1-9][0-9]*)|([0-9]*[1-9][0-9]*\\.[0-9]+)|([0-9]*[1-9][0-9]*))$"
+        if (regex.test(n)) {
+            if (n <= 100 && n >= 0) {
+                return true
+            } else {
+                createAlert('Please enter 0-100 integers.');
+                return false
+            }
+        } else {
+            createAlert('Please enter an integer.');
+            return false;
+        }*/
+        if(isNaN(n)){
+            window.parent.errorAlert('Please enter number.');
+            return false;
+        }else {
+            if(Number(n)<0){
+                window.parent.errorAlert('Please enter the number greater than 0.');
+                return false;
+            }
+        }
+    }
+
+    /* 正则截取年月日 */
+    function changeDate(ttDate) {
+        return ttDate.replace(/(\d{4}).(\d{1,2}).(\d{1,2}).+/mg, '$1-$2-$3');
+    }
+
+    function searchData() {
+        if (!surveyId) {
+            errorAlert('Please choose a survey');
+            return false;
+        }
+        if (!questionId) {
+            errorAlert('Please choose a question');
+            return false;
+        }
+
+        $('#middle-chart').hide();
+        if (echartMiddle) {
+            echartMiddle.dispose();
+        }
+        $('#single-chart').hide();
+        if (echartSingle) {
+            echartSingle.dispose();
+        }
+        $('#multiple-chart').hide();
+        if (echartMultiple) {
+            echartMultiple.dispose();
+        }
+
+        /* GET middle chart */
+        setMiddleEchart();
+        $.ajax({
+            url: ROOT_API + 'api/getSurvey',
+            type: 'post',
+            data: {
+                survey_id: surveyId,
+                survey_question_id: questionId
+            },
+            success: function (res) {
+                surveyInventory = res.surveyInventory;
+                surveyQuestions = res.surveyQuestions;
+                surveyAnswersList = res.surveyAnswersList;
+                surveyResultsList = res.surveyResultsList;
+
+                $('.survey-title').html(surveyInventory.surveyName);
+                $('.survey-date').html(changeDate(surveyInventory.surveyHorizon));
+                $('.survey-desc').html(surveyInventory.surveyDesc);
+                $('.question-title').html(surveyQuestions.surveyQuestion);
+                $('.question-request').html(surveyQuestions.surveyQuestionDesc);
+                var answer,
+                    html,
+                    total;
+                answer = '<tr class="answer">' +
+                    '<td>Option</td>' +
+                    '<td><span>Your Answer</span><button onclick="dataSubmit()" id="submit" type="button" class="btn btn-primary">Submit</button></td>' +
+                    '</tr>';
+                var totalValue = 0;
+                for (var i in surveyAnswersList) {
+                    var result = 0;
+                    for (var j in surveyResultsList) {
+                        if (surveyAnswersList[i].surveyAnswerId == surveyResultsList[j].surveyAnswerId) {
+                            result = surveyResultsList[j].surveyAnswerValue;
+                            break;
+                        }
+                    }
+                    totalValue += result;
+                    html += '<tr>' +
+                        '<td>' + surveyAnswersList[i].surveyAnswer.replace('#horzdate#', changeDate(surveyInventory.surveyHorizon)) + '</td>' +
+                        '<td><input onkeypress="if(event.keyCode==13) focusNextInput(this)" onchange="checkNum(this.value)" id="result_' + surveyAnswersList[i].surveyAnswerId + '" value="' + result + '" type="text" class="form-control result_input"></td>' +
+                        '</tr>';
+                }
+                if (surveyAnswersList.length > 1) {
+                    total = '<tr class="total">' +
+                        '<td>total</td>' +
+                        '<td class="totalValue">' + totalValue + '</td>' +
+                        '</tr>'
+                }
+                if (surveyAnswersList.length > 1) {
+                    $('#option').html(answer + html + total);
+                    $('#multiple-chart').show();
+                    $('.result_input').change(function () {
+                        var totalValue = 0;
+                        $('.result_input').each(function () {
+                            totalValue += parseFloat($(this).val());
+                        });
+                        $('.totalValue').html(totalValue + '%');
+                    });
+                    setMultipleEchart();
+                } else {
+                    $('#option').html(answer + html);
+                    $('#single-chart').show();
+                    setSingleEchart();
+                }
+                nowInDateBetwen(surveyInventory.beginSurveyDate, surveyInventory.endSurveyDate);
+            },
+            error: function (err) {
+                window.parent.errorAlert(err.msg);
+            },
+            dataType: 'json'
+        });
+    }
+
+    function initData() {
+        /* GET survey */
+        $.ajax({
+            url: ROOT_API + 'api/getSurveyList',
+            type: 'post',
+            data: {},
+            success: function (res) {
+                surveyInventoryList = res;
+                var html = '';
+                for (var i in res) {
+                    html += '<option value="' + res[i].surveyId + '">' + res[i].surveyName + '</option>'
+                }
+                $('#survey').html(html);
+                surveyId = $("#survey option:selected").val();
+                if (surveyInventoryList) {
+                    surveyInventory = surveyInventoryList[0];
+                }
+                /* GET question */
+                $('#survey').on('change', function () {
+                    surveyId = $("#survey option:selected").val();
+                    for (var i in surveyInventoryList) {
+                        if (surveyInventoryList[i].surveyId = surveyId) {
+                            surveyInventory = surveyInventoryList[i];
+                        }
+                    }
+                    $.ajax({
+                        url: ROOT_API + 'api/getQuestionList',
+                        type: 'post',
+                        data: {
+                            survey_id: surveyId
+                        },
+                        success: function (res) {
+                            var html = '';
+                            for (var i in res) {
+                                html += '<option value="' + res[i].surveyQuestionId + '">' + res[i].surveyQuestion + '</option>'
+                            }
+                            $('#question').html(html);
+                        },
+                        error: function () {
+                            alert('error')
+                        },
+                        dataType: 'json'
+                    });
+                });
+                $.ajax({
+                    url: ROOT_API + 'api/getQuestionList',
+                    type: 'post',
+                    data: {
+                        survey_id: surveyId
+                    },
+                    success: function (res) {
+                        var html = '';
+                        for (var i in res) {
+                            html += '<option value="' + res[i].surveyQuestionId + '">' + res[i].surveyQuestion + '</option>'
+                        }
+                        $('#question').html(html);
+                        questionId = $("#question option:selected").val();
+                        searchData();
+                    },
+                    error: function () {
+                        alert('error')
+                    },
+                    dataType: 'json'
+                });
+            },
+            error: function () {
+                alert('error')
+            },
+            dataType: 'json'
+        });
+
+        /* search */
+        $('#search').click(function () {
+            surveyId = $("#survey option:selected").val();
+            questionId = $("#question option:selected").val();
+            searchData();
+        })
+    }
+    initData();
+    function focusNextInput(thisInput) {
+        var inputs = $('#option input');
+        for(var i = 0;i<inputs.length;i++){
+            if(i==(inputs.length-1)){
+                dataSubmit(); break;
+            }else if(thisInput == inputs[i]){
+                inputs[i+1].focus(); break;
+            }
+        }
+    }
+
+    function dataSubmit(){
+        if (!surveyId) {
+            window.parent.errorAlert('Please search frist!');
+            return false;
+        }
+        if (!questionId) {
+            window.parent.errorAlert('Please search frist!');
+            return false;
+        }
+        var data = {
+            survey_id: surveyId,
+            survey_question_id: questionId
+        }
+        var totalValue = 0;
+        for (var i in surveyAnswersList) {
+            var result = parseFloat($('#result_' + surveyAnswersList[i].surveyAnswerId).val());
+            data['result_' + surveyAnswersList[i].surveyAnswerId] = result;
+            totalValue += result;
+        }
+        if (surveyAnswersList.length > 1 && totalValue != 100) {
+            window.parent.errorAlert('The sum of all input should be 100%')
+            return false;
+        } else if (surveyAnswersList.length == 1) {
+            if (totalValue > 100 || totalValue < 0) {
+                window.parent.errorAlert('The value of the input should be more than 0% and less than 100%')
+                return false;
+            }
+        }
+        $.ajax({
+            url: ROOT_API + 'api/submitResult',
+            type: 'post',
+            data: data,
+            success: function (res) {
+                if (res.status) {
+                    searchData();
+                } else {
+                    window.parent.errorAlert(res.msg)
+                }
+            },
+            error: function () {
+            },
+            dataType: 'json'
+        })
+    }
+
+    window.addEventListener("resize", function () {
+        echartMiddle.resize();
+        try {
+            echartSingle.resize();
+        }catch (e) {
+
+        }
+        try {
+            echartMultiple.resize();
+        }catch (e) {
+
+        }
+    });
+</script>
+</body>
+</html>
